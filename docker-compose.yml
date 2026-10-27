@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: wagering
+    command: ["postgres", "-c", "max_connections=300"]
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d wagering"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  localstack:
+    image: localstack/localstack:3.8
+    environment:
+      SERVICES: sqs
+      AWS_DEFAULT_REGION: us-east-1
+    ports:
+      - "4566:4566"
+    volumes:
+      - ./docker/localstack-init.sh:/etc/localstack/init/ready.d/init.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "awslocal sqs get-queue-url --queue-name wager-transactions.fifo"]
+      interval: 3s
+      timeout: 5s
+      retries: 40
+
+  # Três instâncias da aplicação disputando as mesmas filas e o mesmo banco.
+  # Sobem com: docker compose --profile app up --build
+  app-1: &app
+    profiles: ["app"]
+    build: .
+    env_file: .env.docker
+    environment:
+      INSTANCE_ID: app-1
+    ports: ["3001:3000"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      localstack: { condition: service_healthy }
+  app-2:
+    <<: *app
+    environment:
+      INSTANCE_ID: app-2
+    ports: ["3002:3000"]
+  app-3:
+    <<: *app
+    environment:
+      INSTANCE_ID: app-3
+    ports: ["3003:3000"]
