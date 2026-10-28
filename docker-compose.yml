@@ -39,7 +39,7 @@ services:
   migrate:
     profiles: ["app"]
     build: .
-    env_file: .env.docker
+    env_file: docker/app.env
     command: ["bun", "run", "scripts/migrate.ts", "up"]
     depends_on:
       postgres: { condition: service_healthy }
@@ -47,7 +47,7 @@ services:
   app-1: &app
     profiles: ["app"]
     build: .
-    env_file: .env.docker
+    env_file: docker/app.env
     environment:
       INSTANCE_ID: app-1
     ports: ["3001:3000"]
