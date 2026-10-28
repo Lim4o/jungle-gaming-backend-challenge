@@ -1,6 +1,7 @@
 import { defineConfig } from '@mikro-orm/postgresql';
 import { Migrator } from '@mikro-orm/migrations';
 import { resolve } from 'node:path';
+import { ENTITY_SCHEMAS } from './records';
 
 const root = resolve(import.meta.dir, '../../..');
 
@@ -10,7 +11,7 @@ export function buildOrmConfig(overrides: { clientUrl?: string; entities?: unkno
       overrides.clientUrl ??
       process.env.DATABASE_URL ??
       'postgres://postgres:postgres@localhost:5432/wagering',
-    entities: (overrides.entities ?? []) as never[],
+    entities: (overrides.entities ?? ENTITY_SCHEMAS) as never[],
     discovery: { warnWhenNoEntities: false },
     pool: { min: 0, max: Number(process.env.DATABASE_POOL_MAX ?? 20) },
     extensions: [Migrator],
