@@ -273,7 +273,7 @@ describe('outbox', () => {
     const crashed = new OutboxRelay(
       { ...outboxStore, claim: outboxStore.claim.bind(outboxStore), stats: outboxStore.stats.bind(outboxStore),
         scheduleRetry: outboxStore.scheduleRetry.bind(outboxStore),
-        markPublished: async () => { throw new Error('process killed'); } },
+        markPublished: async (): Promise<string[]> => { throw new Error('process killed'); } },
       real,
       { owner: 'dead', batchSize: 10, leaseMs: 300 },
     );

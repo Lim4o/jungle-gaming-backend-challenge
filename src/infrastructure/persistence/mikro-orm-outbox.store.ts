@@ -63,16 +63,17 @@ export class MikroOrmOutboxStore implements OutboxStore {
     });
   }
 
-  markPublished(message: OutboxMessage, owner: string): Promise<boolean> {
+  markPublished(messages: OutboxMessage[], owner: string): Promise<string[]> {
+    if (messages.length === 0) return Promise.resolve([]);
     return this.run(async () => {
-      const rows = await this.orm.em.fork().execute<unknown[]>(
+      const rows = await this.orm.em.fork().execute<{ id: string }[]>(
         `update outbox_messages
             set published_at = ?, locked_by = null, locked_until = null, last_error = null
-          where id = ? and published_at is null and locked_by = ?
-        returning 1`,
-        [message.publishedAt, message.id, owner],
+          where id in (?) and published_at is null and locked_by = ?
+        returning id`,
+        [messages[0]!.publishedAt, messages.map((m) => m.id), owner],
       );
-      return rows.length === 1;
+      return rows.map((r) => r.id);
     });
   }
 

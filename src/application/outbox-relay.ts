@@ -66,11 +66,13 @@ export class OutboxRelay {
 
     const byId = new Map(messages.map((m) => [m.id, m]));
     const at = this.clock.now();
-    for (const id of result.published) {
-      const message = byId.get(id)!;
-      message.markPublished(at);
-      const kept = await this.store.markPublished(message, this.options.owner);
-      if (!kept) this.logger.warn({ eventId: id }, 'outbox lease lost after publish; event may be duplicated');
+    const published = result.published.map((id) => byId.get(id)!);
+    for (const message of published) message.markPublished(at);
+    const kept = new Set(await this.store.markPublished(published, this.options.owner));
+    for (const message of published) {
+      if (!kept.has(message.id)) {
+        this.logger.warn({ eventId: message.id }, 'outbox lease lost after publish; event may be duplicated');
+      }
       this.options.onPublished?.(message);
     }
     for (const { id, error } of result.failed) {

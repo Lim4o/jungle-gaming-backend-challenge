@@ -27,6 +27,7 @@
     "test": "bun test",
     "test:unit": "bun test test/unit",
     "test:integration": "bun test --timeout 60000 test/integration",
-    "test:concurrency": "bun test --timeout 120000 test/concurrency"
+    "test:concurrency": "bun test --timeout 120000 test/concurrency",
+    "test:load": "bun run scripts/load-test.ts"
   }
 }

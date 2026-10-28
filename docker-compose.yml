@@ -26,13 +26,24 @@ services:
     volumes:
       - ./docker/localstack-init.sh:/etc/localstack/init/ready.d/init.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "awslocal sqs get-queue-url --queue-name wager-transactions.fifo"]
+      test: ["CMD-SHELL", "awslocal sqs get-queue-url --queue-name wager-events.fifo"]
       interval: 3s
       timeout: 5s
       retries: 40
 
-  # Três instâncias da aplicação disputando as mesmas filas e o mesmo banco.
-  # Sobem com: docker compose --profile app up --build
+  # ---------------------------------------------------------------------------
+  # Aplicação: sobe com  docker compose --profile app up --build
+  # Um serviço de migrations roda uma vez; depois três instâncias disputam o
+  # mesmo banco e as mesmas filas.
+  # ---------------------------------------------------------------------------
+  migrate:
+    profiles: ["app"]
+    build: .
+    env_file: .env.docker
+    command: ["bun", "run", "scripts/migrate.ts", "up"]
+    depends_on:
+      postgres: { condition: service_healthy }
+
   app-1: &app
     profiles: ["app"]
     build: .
@@ -40,8 +51,9 @@ services:
     environment:
       INSTANCE_ID: app-1
     ports: ["3001:3000"]
+    stop_grace_period: 30s
     depends_on:
-      postgres: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
       localstack: { condition: service_healthy }
   app-2:
     <<: *app

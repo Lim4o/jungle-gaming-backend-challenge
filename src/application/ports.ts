@@ -88,8 +88,11 @@ export interface WageringStore {
  */
 export interface OutboxStore {
   claim(owner: string, now: Date, limit: number, leaseMs: number): Promise<OutboxMessage[]>;
-  /** `false` se o lease foi perdido (outra instância já assumiu). */
-  markPublished(message: OutboxMessage, owner: string): Promise<boolean>;
+  /**
+   * Marca o lote num único UPDATE. Devolve os ids efetivamente marcados; os que
+   * faltarem perderam o lease (outra instância já assumiu e vai republicar).
+   */
+  markPublished(messages: OutboxMessage[], owner: string): Promise<string[]>;
   scheduleRetry(message: OutboxMessage, owner: string, error: string): Promise<void>;
   stats(now: Date): Promise<{ pending: number; oldestAgeSeconds: number }>;
 }
