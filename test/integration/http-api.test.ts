@@ -14,7 +14,7 @@ let orm: MikroORM;
 beforeAll(async () => {
   orm = await createTestOrm();
   app = await createApp({
-    config: { ...loadConfig(), databaseUrl: TEST_DATABASE_URL, lockTimeoutMs: 300, logLevel: 'silent' },
+    config: { ...loadConfig(), databaseUrl: TEST_DATABASE_URL, lockTimeoutMs: 300, logLevel: 'silent', messagingEnabled: false },
   });
   await app.listen(0);
   base = await app.getUrl();

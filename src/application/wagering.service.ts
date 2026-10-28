@@ -1,6 +1,7 @@
 import { DomainError } from '../domain/errors';
 import { type EventContext } from '../domain/events/integration-event';
 import { WalletBalanceChanged } from '../domain/events/wagering-events';
+import { FailureCode } from '../domain/failure-code';
 import { InboxMessage } from '../domain/inbox-message';
 import { canonicalJson, sha256, wagerPayloadHash } from '../domain/payload-hash';
 import { DEFAULT_REFERENCE_RETRY, type ExponentialBackoff } from '../domain/retry-policy';
@@ -212,6 +213,27 @@ export class WageringService {
       if (settled === WagerTransactionStatus.Processed) return 'processed';
       if (settled === WagerTransactionStatus.Rejected) return 'rejected';
       return 'rescheduled';
+    });
+  }
+
+  /**
+   * Erro permanente (não transitório, não regra de negócio) ao reprocessar:
+   * a transação vira FAILED — terminal e auditável — em vez de ficar presa.
+   */
+  async failPendingReference(candidate: PendingReferenceCandidate, reason: string): Promise<boolean> {
+    const now = this.clock.now();
+    return this.inTransaction(async (uow) => {
+      await uow.lockWallet(candidate.walletId);
+      const tx = await uow.findTransactionById(candidate.transactionId, { forUpdate: true });
+      if (!tx || tx.status !== WagerTransactionStatus.PendingReference) return false;
+      tx.fail(FailureCode.PermanentProcessingError, now);
+      await uow.updatePendingTransaction(tx);
+      this.telemetry.transactionSettled(tx.status, tx.kind, 'reference_worker');
+      this.logger.error(
+        { transactionId: tx.id, walletId: tx.walletId, providerId: tx.providerId, reason },
+        'pending reference marked FAILED',
+      );
+      return true;
     });
   }
 

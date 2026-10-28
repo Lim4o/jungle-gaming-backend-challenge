@@ -32,7 +32,11 @@ export interface AppConfig {
     visibilityTimeoutSec: number;
     waitTimeSec: number;
     enabled: boolean;
+    /** Cria as filas na subida (testes / execução sem o init do LocalStack). */
+    createQueues: boolean;
   };
+  /** Desliga SQS, outbox e workers (ex.: testes só de HTTP). */
+  messagingEnabled: boolean;
   workers: {
     outboxEnabled: boolean;
     outboxIntervalMs: number;
@@ -71,7 +75,9 @@ export function loadConfig(): AppConfig {
       visibilityTimeoutSec: int('SQS_VISIBILITY_TIMEOUT_SEC', 30),
       waitTimeSec: int('SQS_WAIT_TIME_SEC', 10),
       enabled: env('SQS_CONSUMER_ENABLED', 'true') === 'true',
+      createQueues: env('SQS_CREATE_QUEUES', 'false') === 'true',
     },
+    messagingEnabled: env('MESSAGING_ENABLED', 'true') === 'true',
     workers: {
       outboxEnabled: env('OUTBOX_WORKER_ENABLED', 'true') === 'true',
       outboxIntervalMs: int('OUTBOX_INTERVAL_MS', 500),

@@ -1,6 +1,7 @@
 import type { IntegrationEvent } from '../domain/events/integration-event';
 import type { InboxMessage } from '../domain/inbox-message';
 import type { Money } from '../domain/money';
+import type { OutboxMessage } from '../domain/outbox-message';
 import type { Wallet } from '../domain/wallet';
 import type { WalletLedgerEntry } from '../domain/wallet-ledger-entry';
 import type { WagerTransaction } from '../domain/wager-transaction';
@@ -79,6 +80,27 @@ export interface WageringStore {
 
   /** Transações PENDING_REFERENCE vencidas, com lease para não serem pegas por outra instância. */
   claimDuePendingReferences(now: Date, limit: number, leaseMs: number): Promise<PendingReferenceCandidate[]>;
+}
+
+/**
+ * Outbox: cada instância "aluga" (lease) um lote de eventos pendentes com
+ * FOR UPDATE SKIP LOCKED. Se morrer, o lease expira e outra instância assume.
+ */
+export interface OutboxStore {
+  claim(owner: string, now: Date, limit: number, leaseMs: number): Promise<OutboxMessage[]>;
+  /** `false` se o lease foi perdido (outra instância já assumiu). */
+  markPublished(message: OutboxMessage, owner: string): Promise<boolean>;
+  scheduleRetry(message: OutboxMessage, owner: string, error: string): Promise<void>;
+  stats(now: Date): Promise<{ pending: number; oldestAgeSeconds: number }>;
+}
+
+export interface PublishResult {
+  published: string[];
+  failed: { id: string; error: string }[];
+}
+
+export interface EventPublisher {
+  publish(messages: OutboxMessage[]): Promise<PublishResult>;
 }
 
 /** Sinais de negócio/operação. Implementação real em observability/. */

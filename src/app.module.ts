@@ -22,6 +22,7 @@ import { WageringController } from './http/wagering.controller';
 import { WalletsController } from './http/wallets.controller';
 import { buildOrmConfig } from './infrastructure/persistence/mikro-orm.config';
 import { MikroOrmWageringStore } from './infrastructure/persistence/mikro-orm-wagering.store';
+import { SQS_READINESS, messagingProviders } from './messaging.providers';
 import { createLogger } from './observability/logger';
 import { Metrics } from './observability/metrics';
 
@@ -98,10 +99,15 @@ export class AppModule implements NestModule {
           },
         }),
       },
+      ...(config.messagingEnabled ? messagingProviders(config) : []),
       ...(options.extraProviders ?? []),
       {
         provide: READINESS_CHECKS,
-        inject: ['DATABASE_READINESS', ...(options.extraReadinessChecks ?? [])],
+        inject: [
+          'DATABASE_READINESS',
+          ...(config.messagingEnabled ? [SQS_READINESS] : []),
+          ...(options.extraReadinessChecks ?? []),
+        ],
         useFactory: (...checks: ReadinessCheck[]) => checks,
       },
     ];
