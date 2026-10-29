@@ -1,0 +1,6 @@
+# Fim de linha LF em todos os arquivos de texto, inclusive no Windows.
+# Sem isso, o git no Windows converte para CRLF e o bash dos contêineres
+# (localstack-init.sh) e o parser de env_file (docker/app.env) quebram.
+* text=auto eol=lf
+*.sh text eol=lf
+*.bundle binary
