@@ -30,7 +30,7 @@ export class ExponentialBackoff {
 
 /**
  * Referências fora de ordem (seção 7.1): 2s, 4s, 8s ... até 10 min entre
- * tentativas, no máximo 12 tentativas (~42 min no total). Reversões de
+ * tentativas, no máximo 12 tentativas (2+4+...+512 s + 3x600 s = 2.822 s, ~47 min no total). Reversões de
  * provedores costumam chegar em segundos; esperar mais que isso só segura
  * a resposta definitiva para o provedor. Configurável por variável de ambiente.
  */
